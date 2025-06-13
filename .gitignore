@@ -40,3 +40,4 @@ coverage/
 .Terraform
 .terraform.lock.hcl
 terraform.tfvars
+.terraform.lock.hcl
