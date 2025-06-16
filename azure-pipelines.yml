@@ -1,28 +1,29 @@
-# Azure Pipelines YAML for ToDoList-Solutions project
-
 trigger:
 - main
 
 variables:
-  dockerRegistryServiceConnection: '' # Replace with the name of your Azure Container Registry service connection
+  dockerRegistryServiceConnection: 'ACR–TodoApp'    # Your Docker Registry service connection
+  azureServiceConnection: 'Azure–Todo-App'            # Your Azure Resource Manager service connection
+  acrName: 'todocrdev123'                              # e.g. todoregistry123
+  acrLoginServer: 'todocrdev123.azurecr.io'            # Replace with actual ACR login server
   imageRepositoryBackend: 'todolist-backend'
-  imageRepositoryFrontend: 'todolist-frontend'
   dockerfilePathBackend: '$(Build.SourcesDirectory)/backend/Dockerfile'
-  dockerfilePathFrontend: '$(Build.SourcesDirectory)/frontend/Dockerfile'
+  containerAppName: 'todo-api-app-dev'
+  containerAppResourceGroup: 'rg-todo-dev'
+  containerAppEnv: 'Todoapp-Environment'
   tag: '$(Build.BuildId)'
   vmImageName: 'ubuntu-latest'
 
 stages:
 - stage: Build
-  displayName: Build and push Docker images
+  displayName: Build and push backend image
   jobs:
-  - job: Build
-    displayName: Build
+  - job: BuildAndPush
     pool:
       vmImage: $(vmImageName)
     steps:
     - task: Docker@2
-      displayName: Build and push backend image
+      displayName: Build and Push Backend Image
       inputs:
         containerRegistry: $(dockerRegistryServiceConnection)
         repository: $(imageRepositoryBackend)
@@ -31,36 +32,29 @@ stages:
         tags: |
           $(tag)
 
-    - task: Docker@2
-      displayName: Build and push frontend image
+- stage: Deploy
+  displayName: Deploy to Azure Container App
+  dependsOn: Build
+  condition: succeeded()
+  jobs:
+  - job: Deploy
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+    - task: AzureCLI@2
+      name: DeployContainerApp
       inputs:
-        containerRegistry: $(dockerRegistryServiceConnection)
-        repository: $(imageRepositoryFrontend)
-        command: 'buildAndPush'
-        Dockerfile: $(dockerfilePathFrontend)
-        tags: |
-          $(tag)
+        azureSubscription: $(azureServiceConnection)
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          az config set extension.use_dynamic_install=yes_without_prompt
 
-# Add more stages here for testing and deployment as needed.
-# Example deployment stage to Azure Kubernetes Service (AKS):
-# - stage: Deploy
-#   displayName: Deploy to AKS
-#   jobs:
-#   - job: Deploy
-#     displayName: Deploy
-#     pool:
-#       vmImage: $(vmImageName)
-#     steps:
-#     - task: KubernetesManifest@1
-#       displayName: Deploy to Kubernetes cluster
-#       inputs:
-#         kubernetesServiceConnection: '' # Replace with the name of your Kubernetes service connection
-#         namespace: 'default' # Replace with your namespace
-#         manifests: |
-#           $(Build.SourcesDirectory)/backend-deployment.yaml
-#           $(Build.SourcesDirectory)/backend-service.yaml
-#           $(Build.SourcesDirectory)/frontend-deployment.yaml
-#           $(Build.SourcesDirectory)/frontend-service.yaml
-#         containers: |
-#           $(dockerRegistryServiceConnection)/$(imageRepositoryBackend):$(tag)
-#           $(dockerRegistryServiceConnection)/$(imageRepositoryFrontend):$(tag)
+          echo "Updating Azure Container App revision..."
+          az containerapp update \
+            --name $(containerAppName) \
+            --resource-group $(containerAppResourceGroup) \
+            --image $(acrLoginServer)/$(imageRepositoryBackend):$(tag) \
+            --cpu 0.5 \
+            --memory 1.0Gi
+
