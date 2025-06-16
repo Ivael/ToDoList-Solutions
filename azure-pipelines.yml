@@ -2,47 +2,70 @@ trigger:
 - main
 
 variables:
-  dockerRegistryServiceConnection: 'ACR–TodoApp'    # Your Docker Registry service connection
-  azureServiceConnection: 'Azure–Todo-App'            # Your Azure Resource Manager service connection
-  acrName: 'todocrdev123'                              # e.g. todoregistry123
-  acrLoginServer: 'todocrdev123.azurecr.io'            # Replace with actual ACR login server
+  dockerRegistryServiceConnection: 'ACR–TodoApp'
+  azureServiceConnection: 'Azure–Todo-App'
+  acrLoginServer: 'todocrdev123.azurecr.io'
   imageRepositoryBackend: 'todolist-backend'
   dockerfilePathBackend: '$(Build.SourcesDirectory)/backend/Dockerfile'
-  containerAppName: 'todo-api-app-dev'
+  containerAppName: 'todo-api-capp-dev'
   containerAppResourceGroup: 'rg-todo-dev'
-  containerAppEnv: 'Todoapp-Environment'
+  staticWebAppName: 'todoapp-swa-dev'
+  staticWebAppAppLocation: 'frontend'
+  staticWebAppOutputLocation: 'dist'
   tag: '$(Build.BuildId)'
   vmImageName: 'ubuntu-latest'
 
 stages:
 - stage: Build
-  displayName: Build and push backend image
+  displayName: Build Backend and Frontend
   jobs:
-  - job: BuildAndPush
+  - job: Build
     pool:
       vmImage: $(vmImageName)
     steps:
     - task: Docker@2
-      displayName: Build and Push Backend Image
+      displayName: Build backend image
       inputs:
         containerRegistry: $(dockerRegistryServiceConnection)
         repository: $(imageRepositoryBackend)
-        command: 'buildAndPush'
+        command: build
         Dockerfile: $(dockerfilePathBackend)
         tags: |
           $(tag)
 
-- stage: Deploy
-  displayName: Deploy to Azure Container App
+    - script: |
+        cd $(staticWebAppAppLocation)
+        npm install
+        npm run build
+      displayName: Build frontend static files
+
+- stage: Push
+  displayName: Push Backend Image to ACR
   dependsOn: Build
-  condition: succeeded()
   jobs:
-  - job: Deploy
+  - job: PushBackend
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+    - task: Docker@2
+      displayName: Push backend image
+      inputs:
+        containerRegistry: $(dockerRegistryServiceConnection)
+        repository: $(imageRepositoryBackend)
+        command: push
+        tags: |
+          $(tag)
+
+- stage: Deploy
+  displayName: Deploy Backend and Frontend
+  dependsOn: Push
+  jobs:
+  - job: DeployBackend
+    displayName: Deploy to Azure Container App
     pool:
       vmImage: $(vmImageName)
     steps:
     - task: AzureCLI@2
-      name: DeployContainerApp
       inputs:
         azureSubscription: $(azureServiceConnection)
         scriptType: bash
@@ -50,11 +73,22 @@ stages:
         inlineScript: |
           az config set extension.use_dynamic_install=yes_without_prompt
 
-          echo "Updating Azure Container App revision..."
+          echo "Deploying backend container..."
           az containerapp update \
             --name $(containerAppName) \
             --resource-group $(containerAppResourceGroup) \
             --image $(acrLoginServer)/$(imageRepositoryBackend):$(tag) \
             --cpu 0.5 \
             --memory 1.0Gi
+
+  - job: DeployFrontend
+    displayName: Deploy to Azure Static Web App
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+    - task: AzureStaticWebApp@0
+      inputs:
+        app_location: $(staticWebAppAppLocation)
+        output_location: $(staticWebAppOutputLocation)
+        azure_static_web_apps_api_token: $(deployment_token)
 
