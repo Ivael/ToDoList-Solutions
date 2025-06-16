@@ -15,7 +15,7 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   try {
-    const { title, description, dueDate } = req.body;
+    const { title, description, dueDate, priority } = req.body;
 
     if (!title || typeof title !== "string" || title.trim() === "") {
       return res
@@ -23,12 +23,17 @@ router.post("/", async (req, res) => {
         .json({ message: "Title is required and must be a non-empty string" });
     }
 
+    const validPriorities = ["low", "medium", "high"];
+    const taskPriority =
+      priority && validPriorities.includes(priority) ? priority : "low";
+
     const newTodo = {
       id: uuidv4(),
-      userId: req.userId, // Add userId from auth middleware
+      userId: req.userId,
       title: title.trim(),
       description: description || "",
       dueDate: dueDate || null,
+      priority: taskPriority,
       isCompleted: false,
       createdAt: new Date().toISOString(),
     };
@@ -63,7 +68,7 @@ router.get("/:id", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, dueDate } = req.body;
+    const { title, description, dueDate, priority } = req.body;
 
     if (
       title !== undefined &&
@@ -72,6 +77,13 @@ router.put("/:id", async (req, res) => {
       return res
         .status(400)
         .json({ message: "Title must be a non-empty string" });
+    }
+
+    const validPriorities = ["low", "medium", "high"];
+    if (priority !== undefined && !validPriorities.includes(priority)) {
+      return res
+        .status(400)
+        .json({ message: "Priority must be one of: low, medium, high" });
     }
 
     const todos = await readTodos();
@@ -87,6 +99,7 @@ router.put("/:id", async (req, res) => {
     if (title !== undefined) updatedTodo.title = title.trim();
     if (description !== undefined) updatedTodo.description = description;
     if (dueDate !== undefined) updatedTodo.dueDate = dueDate;
+    if (priority !== undefined) updatedTodo.priority = priority;
 
     todos[todoIndex] = updatedTodo;
     await writeTodos(todos);
@@ -100,12 +113,20 @@ router.put("/:id", async (req, res) => {
 router.patch("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { isCompleted } = req.body;
+    const { isCompleted, dueDate, priority } = req.body;
 
-    if (typeof isCompleted !== "boolean") {
+    // Validate inputs if provided
+    if (isCompleted !== undefined && typeof isCompleted !== "boolean") {
       return res
         .status(400)
         .json({ message: "isCompleted must be a boolean value" });
+    }
+
+    const validPriorities = ["low", "medium", "high"];
+    if (priority !== undefined && !validPriorities.includes(priority)) {
+      return res
+        .status(400)
+        .json({ message: "Priority must be one of: low, medium, high" });
     }
 
     const todos = await readTodos();
@@ -117,16 +138,23 @@ router.patch("/:id", async (req, res) => {
       return res.status(404).json({ message: "Todo not found" });
     }
 
-    todos[todoIndex].isCompleted = isCompleted;
+    if (isCompleted !== undefined) {
+      todos[todoIndex].isCompleted = isCompleted;
+    }
+    if (dueDate !== undefined) {
+      todos[todoIndex].dueDate = dueDate;
+    }
+    if (priority !== undefined) {
+      todos[todoIndex].priority = priority;
+    }
+
     const updatedTodo = todos[todoIndex];
 
     await writeTodos(todos);
 
     res.json(updatedTodo);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Failed to update todo completion status" });
+    res.status(500).json({ message: "Failed to update todo" });
   }
 });
 
