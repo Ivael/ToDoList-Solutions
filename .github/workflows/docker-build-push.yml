@@ -1,0 +1,39 @@
+name: Build & Push Images
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - backend/** 
+      - frontend/**
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to ACR
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build & push backend image
+        run: |
+          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/todolist-backend:${{ github.sha }} backend/
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/todolist-backend:${{ github.sha }}
+
+      - name: Build frontend image
+        run: |
+          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/todolist-frontend:${{ github.sha }} frontend/
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/todolist-frontend:${{ github.sha }}
+
+      - name: Save image tag
+        run: echo "IMAGE_TAG=${{ github.sha }}" >> $GITHUB_ENV

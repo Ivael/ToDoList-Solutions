@@ -1,0 +1,33 @@
+name: Deploy to AKS
+
+on:
+  workflow_run:
+    workflows: ["Build & Push Images"]
+    types:
+      - completed
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get AKS credentials
+        run: |
+          az aks get-credentials \
+            --resource-group rg-todo-dev \
+            --name todo-aks-dev \
+            --file ~/.kube/config
+
+      - name: Deploy to AKS
+        run: |
+          kubectl set image deployment/todo-backend todo-backend=${{ secrets.ACR_LOGIN_SERVER }}/todolist-backend:${{ github.event.workflow_run.head_sha }} --namespace default
+          kubectl set image deployment/todo-frontend todo-frontend=${{ secrets.ACR_LOGIN_SERVER }}/todolist-frontend:${{ github.event.workflow_run.head_sha }} --namespace default
+          kubectl rollout status deployment/todo-backend --namespace default
+          kubectl rollout status deployment/todo-frontend --namespace default
