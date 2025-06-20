@@ -58,11 +58,20 @@ variable "ai_name" {
   type = string
 }
 
-variable "api_container_group_name" {
+variable "api_container_app_name" {
   description = "Name of the API container group"
   type        = string
 }
 
+variable "cluster_name" {
+  description = "Name of the AKS cluster"
+  type        = string
+}
+
+variable "vm_size" {
+  description = "VM size for the AKS nodes"
+  type        = string
+}
 #variable "github_repo_url" {
 #  description = "GitHub repository URL for the static web app"
 #  type        = string
