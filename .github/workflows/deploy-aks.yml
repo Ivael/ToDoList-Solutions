@@ -9,6 +9,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -23,11 +24,23 @@ jobs:
           az aks get-credentials \
             --resource-group rg-todo-dev \
             --name todo-aks-dev \
-            --file ~/.kube/config
+            --overwrite-existing
 
-      - name: Deploy to AKS
+      - name: Deploy manifests to AKS
+        run: |
+          kubectl apply -f k8s/backend-deployment.yaml
+          kubectl apply -f k8s/backend-service.yaml
+          kubectl apply -f k8s/frontend-deployment.yaml
+          kubectl apply -f k8s/frontend-service.yaml
+
+      - name: Update images in deployments
         run: |
           kubectl set image deployment/todo-backend todo-backend=${{ secrets.ACR_LOGIN_SERVER }}/todolist-backend:${{ github.event.workflow_run.head_sha }} --namespace default
           kubectl set image deployment/todo-frontend todo-frontend=${{ secrets.ACR_LOGIN_SERVER }}/todolist-frontend:${{ github.event.workflow_run.head_sha }} --namespace default
+
+      - name: Wait for rollout to complete
+        run: |
           kubectl rollout status deployment/todo-backend --namespace default
           kubectl rollout status deployment/todo-frontend --namespace default
+
+          
