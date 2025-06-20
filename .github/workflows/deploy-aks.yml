@@ -28,10 +28,10 @@ jobs:
 
       - name: Deploy manifests to AKS
         run: |
-          kubectl apply -f k8s/backend-deployment.yaml
-          kubectl apply -f k8s/backend-service.yaml
-          kubectl apply -f k8s/frontend-deployment.yaml
-          kubectl apply -f k8s/frontend-service.yaml
+          kubectl apply -f backend-deployment.yaml
+          kubectl apply -f backend-service.yaml
+          kubectl apply -f frontend-deployment.yaml
+          kubectl apply -f frontend-service.yaml
 
       - name: Update images in deployments
         run: |
