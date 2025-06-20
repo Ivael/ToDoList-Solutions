@@ -13,8 +13,8 @@ spec:
         app: backend
     spec:
       containers:
-        - name: backend
-          image: backend-todo-app:latest
-          imagePullPolicy: Never
+        - name: todo-backend
+          image: todocrdev123.azurecr.io/todolist-backend:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 3000
