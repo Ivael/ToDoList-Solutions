@@ -458,8 +458,8 @@ body {
 }
 
 .hero-content {
-  max-width: 50%; /* Limit content width */
-  flex-grow: 1; /* Allow content to grow */
+  max-width: 50%;
+  flex-grow: 1;
 }
 
 .hero-section h1 {
