@@ -18,7 +18,7 @@ module "acr" {
 # 3. Application Insights
 module "app_insights" {
   source              = "../../modules/app-insights"
-  ai_name                = var.ai_name
+  ai_name             = var.ai_name
   location            = module.rg.location
   resource_group_name = module.rg.resource_group_name
   tags                = var.tags
@@ -35,24 +35,16 @@ module "cosmos" {
   collection_name         = var.cosmos_collection_name
 }
 
-# 5. Container Group (API)
-module "api_cg" {
-  source              = "../../modules/container-group"
-  name                = var.api_container_group_name
+# environments/dev/aks.tf
+module "aks" {
+  source              = "../../modules/aks"
+  cluster_name        = var.cluster_name
   resource_group_name = module.rg.resource_group_name
   location            = module.rg.location
-  container_name      = var.api_container_name
-  image               = var.api_image
-  cpu                 = 0.5
-  memory              = 1.5
-  port                = 3000
-  dns_name_label      = var.api_dns_label
-  environment_variables = {
-    COSMOS_ENDPOINT = module.cosmos.COSMOS_ENDPOINT
-    COSMOS_KEY      = module.cosmos.COSMOS_PRIMARY_KEY
-    APPINSIGHTS_KEY = module.app_insights.app_insights_instrumentation_key
-  }
-  tags = var.tags
+  dns_prefix          = "tododev"
+  node_count          = 1
+  vm_size             = "Standard_B2s"
+  tags                = var.tags
 }
 
 # 6. Static Web App (Frontend)
