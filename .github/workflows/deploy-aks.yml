@@ -35,8 +35,8 @@ jobs:
 
       - name: Update images in deployments
         run: |
-          kubectl set image deployment/todo-backend todo-backend=${{ secrets.ACR_LOGIN_SERVER }}/todolist-backend:${{ github.event.workflow_run.head_sha }} --namespace default
-          kubectl set image deployment/todo-frontend todo-frontend=${{ secrets.ACR_LOGIN_SERVER }}/todolist-frontend:${{ github.event.workflow_run.head_sha }} --namespace default
+          kubectl set image deployment/todo-backend todo-backend=${{ secrets.ACR_LOGIN_SERVER }}/backend-deployment:${{ github.event.workflow_run.head_sha }} --namespace default
+          kubectl set image deployment/todo-frontend todo-frontend=${{ secrets.ACR_LOGIN_SERVER }}/frontend-deployment:${{ github.event.workflow_run.head_sha }} --namespace default
 
       - name: Wait for rollout to complete
         run: |
