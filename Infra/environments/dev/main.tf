@@ -15,26 +15,6 @@ module "acr" {
   tags                    = var.tags
 }
 
-# 3. Application Insights
-module "app_insights" {
-  source              = "../../modules/app-insights"
-  ai_name             = var.ai_name
-  location            = module.rg.location
-  resource_group_name = module.rg.resource_group_name
-  tags                = var.tags
-}
-
-# 4. Cosmos DB
-module "cosmos" {
-  source                  = "../../modules/cosmos-db"
-  cosmos_account_name     = var.cosmos_account_name
-  resource_group_name     = module.rg.resource_group_name
-  resource_group_location = module.rg.location
-  location                = module.rg.location
-  database_name           = var.cosmos_db_name
-  collection_name         = var.cosmos_collection_name
-}
-
 # environments/dev/aks.tf
 module "aks" {
   source              = "../../modules/aks"
@@ -47,15 +27,3 @@ module "aks" {
   tags                = var.tags
 }
 
-# 6. Static Web App (Frontend)
-module "swa" {
-  source                  = "../../modules/static-web-app"
-  static_web_app_name     = var.swa_name
-  resource_group_name     = module.rg.resource_group_name
-  resource_group_location = module.rg.location
-  app_location            = var.swa_app_location
-  api_location            = "" # Set to your API location if needed
-  #github_repo_url         = var.github_repo_url
-  #github_branch           = var.github_branch
-  #github_token            = var.github_token
-}
