@@ -1,4 +1,4 @@
-# Todo Application with Notes & Calendar
+# BetaTask with Notes & Calendar
 
 A modern full-stack Todo application with Vue 3 frontend and Firebase backend, featuring comprehensive task management, notes, calendar view, and real-time notifications.
 
